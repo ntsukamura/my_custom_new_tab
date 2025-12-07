@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Tab</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="background-gradient"></div>
+    <div class="container">
+        <header class="header">
+            <div class="header-content">
+                <div>
+                    <div class="header-title-wrapper">
+                        <img id="header-icon" class="header-icon" src="" alt="" style="display: none;">
+                        <h1>New Tab</h1>
+                    </div>
+                    <div id="date-display"></div>
+                </div>
+                <div class="header-search">
+                    <div class="search-input-wrapper">
+                        <input type="text" id="bookmark-search" class="search-input"
+                            data-i18n-placeholder="search-placeholder" placeholder="ブックマークを検索..." autocomplete="off">
+                        <div id="search-suggestions" class="search-suggestions hidden"></div>
+                    </div>
+                </div>
+                <button id="settings-trigger" class="settings-btn" title="Settings">⚙</button>
+            </div>
+        </header>
+
+        <main>
+            <section class="carousel-container">
+                <div id="link-carousel" class="carousel">
+                    <!-- Cards will be inserted here by JavaScript -->
+                    <div class="card add-card-trigger">
+                        <div class="card-icon">+</div>
+                        <div class="card-title">Add Shortcut</div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal for adding/editing links -->
+    <div id="modal" class="modal hidden">
+        <div class="modal-content glass-panel">
+            <h2 data-i18n="add-shortcut">Add Shortcut</h2>
+            <form id="link-form">
+                <div class="form-group" style="position: relative;">
+                    <label for="link-title" data-i18n="title-label">Title</label>
+                    <input type="text" id="link-title" required placeholder="e.g. YouTube" autocomplete="off">
+                    <ul id="title-suggestions" class="suggestions-list hidden"></ul>
+                </div>
+                <div class="form-group" style="position: relative;">
+                    <label for="link-url" data-i18n="url-label">URL</label>
+                    <input type="text" id="link-url" required placeholder="e.g. https://www.youtube.com"
+                        autocomplete="off">
+                    <ul id="url-suggestions" class="suggestions-list hidden"></ul>
+                </div>
+                <div class="form-group">
+                    <label for="link-image-file" data-i18n="image-label">画像 (Optional)</label>
+                    <input type="file" id="link-image-file" accept="image/*" style="display: none;">
+                    <div class="image-upload-area">
+                        <button type="button" id="image-upload-btn" class="btn-upload"
+                            data-i18n="select-image">画像を選択</button>
+                        <div id="image-preview-container" class="image-preview-container">
+                            <img id="image-preview" class="image-preview" src="icons/free.svg" alt="Preview">
+                            <button type="button" id="image-remove-btn" class="btn-remove-image"
+                                title="画像を削除">×</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label data-i18n="pattern-label">Background Pattern</label>
+                    <div class="pattern-selector">
+                        <div class="pattern-option" data-pattern="card-bg-1"></div>
+                        <div class="pattern-option" data-pattern="card-bg-2"></div>
+                        <div class="pattern-option" data-pattern="card-bg-3"></div>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn secondary" id="cancel-btn" data-i18n="cancel">Cancel</button>
+                    <button type="submit" class="btn primary" data-i18n="save">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="settings-modal" class="modal hidden">
+        <div class="modal-content glass-panel">
+            <h2 data-i18n="settings-title">Theme Settings</h2>
+            <div id="settings-form">
+                <!-- Language Toggle -->
+                <div class="form-group">
+                    <label data-i18n="language-label">Language</label>
+                    <div class="language-toggle">
+                        <button type="button" class="lang-btn active" data-lang="ja" data-i18n="lang-ja">日本語</button>
+                        <button type="button" class="lang-btn" data-lang="en" data-i18n="lang-en">English</button>
+                    </div>
+                </div>
+
+                <!-- Background Color -->
+                <div class="form-group">
+                    <label data-i18n="bg-color-label">Background Color</label>
+                    <input type="color" id="bg-color-input" value="#2f4f4f" title="Background Color">
+                </div>
+
+                <!-- Title Text Color -->
+                <div class="form-group">
+                    <label data-i18n="title-color-label">Title Text Color</label>
+                    <div class="color-inputs-row" style="justify-content: flex-start; gap: 20px;">
+                        <div style="flex: 0 0 100px;">
+                            <label style="font-size: 0.8rem; margin-bottom: 4px; display: block;"
+                                data-i18n="title-color-start">Start</label>
+                            <input type="color" id="title-color-start" value="#ffffff" title="Start Color">
+                        </div>
+                        <div style="flex: 0 0 100px;">
+                            <label style="font-size: 0.8rem; margin-bottom: 4px; display: block;"
+                                data-i18n="title-color-end">End</label>
+                            <input type="color" id="title-color-end" value="#94a3b8" title="End Color">
+                        </div>
+                    </div>
+
+
+
+                    <!-- Header Icon Image -->
+                    <div class="form-group">
+                        <label data-i18n="icon-image-label">アイコン画像</label>
+                        <div class="bg-image-input-group">
+                            <input type="text" id="icon-image-input" placeholder="画像を選択してください" readonly
+                                style="cursor: default; background: rgba(255, 255, 255, 0.03);">
+                            <input type="file" id="icon-image-file-input" accept="image/*" style="display: none;">
+                            <button type="button" id="icon-image-browse-btn" class="btn-browse"
+                                data-i18n="browse">参照</button>
+                        </div>
+                        <small class="form-hint" data-i18n="icon-image-hint">参照ボタンから画像を選択してください（最大5MB）</small>
+                    </div>
+
+                    <!-- Pattern Colors -->
+                    <div class="form-group">
+                        <label data-i18n="pattern-colors-label">Card Pattern Colors</label>
+                        <div class="color-patterns-container">
+                            <div class="color-input-group">
+                                <div class="color-preview" id="preview-1" style="background: var(--bg-pattern-1)"></div>
+                                <div class="color-inputs">
+                                    <label data-i18n="pattern-1">Pattern 1</label>
+                                    <div class="color-inputs-row">
+                                        <input type="color" id="p1-c1" value="#3b82f6" title="Color 1">
+                                        <input type="color" id="p1-c2" value="#8b5cf6" title="Color 2">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="color-input-group">
+                                <div class="color-preview" id="preview-2" style="background: var(--bg-pattern-2)"></div>
+                                <div class="color-inputs">
+                                    <label data-i18n="pattern-2">Pattern 2</label>
+                                    <div class="color-inputs-row">
+                                        <input type="color" id="p2-c1" value="#f59e0b" title="Color 1">
+                                        <input type="color" id="p2-c2" value="#ef4444" title="Color 2">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="color-input-group">
+                                <div class="color-preview" id="preview-3" style="background: var(--bg-pattern-3)"></div>
+                                <div class="color-inputs">
+                                    <label data-i18n="pattern-3">Pattern 3</label>
+                                    <div class="color-inputs-row">
+                                        <input type="color" id="p3-c1" value="#10b981" title="Color 1">
+                                        <input type="color" id="p3-c2" value="#06b6d4" title="Color 2">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn danger" id="settings-reset-btn"
+                            data-i18n="reset">Reset</button>
+                        <div class="modal-actions-right">
+                            <button type="button" class="btn secondary" id="settings-close-btn"
+                                data-i18n="close">Close</button>
+                            <button type="button" class="btn primary" id="settings-save-btn"
+                                data-i18n="save">Save</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script src="script.js"></script>
+</body>
+
+</html>
