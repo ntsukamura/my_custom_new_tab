@@ -7,12 +7,12 @@
     --primary-color: #3b82f6;
     --primary-hover: #2563eb;
     --card-width: 200px;
-    --card-height: 280px;
+    --card-height: 200px;
     --gap: 24px;
 
     /* Default Patterns */
-    --bg-pattern-1: linear-gradient(135deg, #3b82f6, #8b5cf6);
-    --bg-pattern-2: linear-gradient(135deg, #f59e0b, #ef4444);
+    --bg-pattern-1: linear-gradient(135deg, #0061ff, #60efff);
+    --bg-pattern-2: linear-gradient(135deg, #fcd34d, #fdba74);
     --bg-pattern-3: linear-gradient(135deg, #10b981, #06b6d4);
 }
 
@@ -29,11 +29,12 @@ body {
     background-repeat: no-repeat, no-repeat;
     background-attachment: fixed, fixed;
     color: var(--text-color);
-    height: 100vh;
+    min-height: 100vh;
     display: flex;
     justify-content: center;
-    align-items: center;
-    overflow: hidden;
+    align-items: flex-start;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .background-gradient {
@@ -50,7 +51,7 @@ body {
 .container {
     width: 100%;
     max-width: 1200px;
-    padding: 0 40px;
+    padding: 40px;
     display: flex;
     flex-direction: column;
     gap: 40px;
@@ -186,6 +187,16 @@ body {
 
 .header {
     margin-bottom: 20px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(47, 79, 79, 0.95);
+    backdrop-filter: blur(12px);
+    padding: 20px 0;
+    margin: -40px -40px 20px -40px;
+    padding-left: 40px;
+    padding-right: 40px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .header-content {
@@ -282,6 +293,15 @@ body {
     padding: 0 10px;
 }
 
+.carousel-title {
+    padding: 0 20px;
+    margin-bottom: 10px;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    opacity: 0.9;
+}
+
 /* Card Gradients */
 .card.card-bg-1 {
     background: var(--bg-pattern-1) !important;
@@ -305,6 +325,25 @@ body {
 
 .card.card-bg-3:hover {
     background: var(--bg-pattern-3) !important;
+}
+
+/* Fixed Colors for History/Bookmarks (Independent of settings) */
+/* Pale Yellow/Orange (History) */
+.card.fixed-history {
+    background: linear-gradient(135deg, #fcd34d, #fdba74) !important;
+}
+
+.card.fixed-history:hover {
+    background: linear-gradient(135deg, #fcd34d, #fdba74) !important;
+}
+
+/* Vivid Blue (Bookmarks) */
+.card.fixed-bookmarks {
+    background: linear-gradient(135deg, #0061ff, #60efff) !important;
+}
+
+.card.fixed-bookmarks:hover {
+    background: linear-gradient(135deg, #0061ff, #60efff) !important;
 }
 
 /* Pattern Selector in Modal */
@@ -437,7 +476,7 @@ body {
 /* Cards */
 .card {
     flex: 0 0 var(--card-width);
-    min-height: var(--card-height);
+    height: var(--card-height);
     border: 1px solid var(--glass-border);
     border-radius: 20px;
     backdrop-filter: blur(12px);
@@ -470,8 +509,8 @@ body {
 
 .card-thumbnail {
     width: 100%;
-    height: 120px;
-    margin-top: 12px;
+    height: 80px;
+    margin-top: 8px;
     border-radius: 12px;
     overflow: hidden;
     position: relative;
@@ -514,12 +553,13 @@ body {
 }
 
 .card-url {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     color: #cbd5e1;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     z-index: 1;
+    margin-bottom: 4px;
 }
 
 /* Actions */

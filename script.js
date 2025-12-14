@@ -21,8 +21,8 @@ const DEFAULT_LINKS = [
 
 const DEFAULT_SETTINGS = {
     patterns: [
-        { c1: '#3b82f6', c2: '#8b5cf6' }, // Pattern 1
-        { c1: '#f59e0b', c2: '#ef4444' }, // Pattern 2
+        { c1: '#0061ff', c2: '#60efff' }, // Pattern 1 (Vivid Blue)
+        { c1: '#fcd34d', c2: '#fdba74' }, // Pattern 2 (Pale Yellow)
         { c1: '#10b981', c2: '#06b6d4' }  // Pattern 3
     ],
     language: 'ja',
@@ -46,6 +46,10 @@ const translations = {
         'title-color-label': 'タイトル文字色',
         'title-color-start': '開始色',
         'title-color-end': '終了色',
+
+        'custom-bookmarks': 'カスタマイズ ブックマークカード',
+        'recent-history': 'あなたの閲覧履歴：ランダム5件',
+        'random-bookmarks': 'あなたのブックマーク：ランダム5件',
 
         'pattern-colors-label': 'カードパターンカラー',
         'pattern-1': 'パターン 1',
@@ -88,6 +92,10 @@ const translations = {
         'title-color-label': 'Title Text Color',
         'title-color-start': 'Start Color',
         'title-color-end': 'End Color',
+
+        'custom-bookmarks': 'Custom Bookmark Cards',
+        'recent-history': 'Your Recent History (Random 5)',
+        'random-bookmarks': 'Your Bookmarks (Random 5)',
 
         'pattern-colors-label': 'Card Pattern Colors',
         'pattern-1': 'Pattern 1',
@@ -272,6 +280,8 @@ async function init() {
     setupCarouselDrag();
     setupBookmarkSearch();
     await renderLinks();
+    await renderHistoryCarousel();
+    await renderBookmarkCarousel();
 }
 
 // --- Date Logic ---
@@ -592,8 +602,8 @@ async function resetSettings() {
     // Factory Defaults
     const factoryDefaults = {
         patterns: [
-            { c1: '#3b82f6', c2: '#8b5cf6' }, // Pattern 1
-            { c1: '#f59e0b', c2: '#ef4444' }, // Pattern 2
+            { c1: '#0061ff', c2: '#60efff' }, // Pattern 1
+            { c1: '#fcd34d', c2: '#fdba74' }, // Pattern 2
             { c1: '#10b981', c2: '#06b6d4' }  // Pattern 3
         ],
         language: 'ja', // Default to Japanese as per initial setting
@@ -669,6 +679,162 @@ function shuffleArray(array) {
         [array[i], array[j]] = [array[j], array[i]];
     }
     return array;
+}
+
+// --- History Carousel Functions ---
+async function getRecentHistory() {
+    return new Promise((resolve) => {
+        if (typeof chrome === 'undefined' || !chrome.history || !chrome.history.search) {
+            resolve([]);
+            return;
+        }
+
+        // Get history from the last 24 hours
+        const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+
+        chrome.history.search({
+            text: '',
+            maxResults: 100, // Get more results to filter
+            startTime: oneDayAgo
+        }, (results) => {
+            if (chrome.runtime.lastError) {
+                console.warn('History search error:', chrome.runtime.lastError.message);
+                resolve([]);
+                return;
+            }
+
+            // Filter to get unique URLs and limit to 5
+            const uniqueUrls = new Map();
+            const filteredResults = [];
+
+            for (const item of results || []) {
+                if (item.url && !uniqueUrls.has(item.url)) {
+                    uniqueUrls.set(item.url, true);
+                    filteredResults.push({
+                        title: item.title || new URL(item.url).hostname,
+                        url: item.url
+                    });
+
+                    if (filteredResults.length >= 5) {
+                        break;
+                    }
+                }
+            }
+
+            resolve(filteredResults);
+        });
+    });
+}
+
+async function renderHistoryCarousel() {
+    const historyCarousel = document.getElementById('history-carousel');
+    if (!historyCarousel) {
+        console.warn('History carousel element not found');
+        return;
+    }
+
+    const historyItems = await getRecentHistory();
+
+    // Clear existing cards
+    historyCarousel.innerHTML = '';
+
+    if (historyItems.length === 0) {
+        historyCarousel.innerHTML = '<div style="padding: 20px; color: rgba(255,255,255,0.5);">閲覧履歴がありません</div>';
+        return;
+    }
+
+    // Create cards for each history item
+    historyItems.forEach(item => {
+        const card = createSimpleCardElement(item, 'fixed-history');
+        historyCarousel.appendChild(card);
+    });
+}
+
+// --- Bookmark Carousel Functions ---
+async function getRandomBookmarks() {
+    const bookmarks = await loadAllBookmarks();
+
+    if (bookmarks.length === 0) {
+        return [];
+    }
+
+    // Shuffle and get 5 random bookmarks
+    const shuffled = shuffleArray([...bookmarks]);
+    return shuffled.slice(0, 5).map(bookmark => ({
+        title: bookmark.title,
+        url: bookmark.url
+    }));
+}
+
+async function renderBookmarkCarousel() {
+    const bookmarkCarousel = document.getElementById('bookmark-carousel');
+    if (!bookmarkCarousel) {
+        console.warn('Bookmark carousel element not found');
+        return;
+    }
+
+    const bookmarkItems = await getRandomBookmarks();
+
+    // Clear existing cards
+    bookmarkCarousel.innerHTML = '';
+
+    if (bookmarkItems.length === 0) {
+        bookmarkCarousel.innerHTML = '<div style="padding: 20px; color: rgba(255,255,255,0.5);">ブックマークがありません</div>';
+        return;
+    }
+
+    // Create cards for each bookmark
+    bookmarkItems.forEach(item => {
+        const card = createSimpleCardElement(item, 'fixed-bookmarks');
+        bookmarkCarousel.appendChild(card);
+    });
+}
+
+// --- Simple Card Element (without edit/delete buttons) ---
+function createSimpleCardElement(link, fixedBgClass = null) {
+    const div = document.createElement('div');
+    div.className = 'card link-card';
+
+    // Assign random background class or fixed one
+    const bgClass = fixedBgClass || getRandomBgClass();
+    div.classList.add(bgClass);
+
+    // Safely get hostname from URL
+    let hostname = '';
+    try {
+        hostname = new URL(link.url).hostname;
+    } catch (e) {
+        try {
+            const urlMatch = link.url.match(/https?:\/\/([^\/]+)/);
+            hostname = urlMatch ? urlMatch[1] : link.url;
+        } catch (e2) {
+            hostname = link.url;
+        }
+    }
+
+    // Create thumbnail image - use default SVG
+    const imageSrc = 'icons/free.svg';
+
+    const thumbnailHtml = `
+        <div class="card-thumbnail">
+            <img src="${imageSrc}" class="card-thumbnail-image" alt="${escapeHtml(link.title)}" onerror="this.src='icons/free.svg';">
+        </div>
+    `;
+
+    div.innerHTML = `
+        <div class="card-title">
+            <span>${escapeHtml(link.title)}</span>
+        </div>
+        <div class="card-url">${escapeHtml(hostname)}</div>
+        ${thumbnailHtml}
+    `;
+
+    // Add click handler to open URL
+    div.addEventListener('click', () => {
+        window.location.href = link.url;
+    });
+
+    return div;
 }
 
 
@@ -934,99 +1100,105 @@ function hideSuggestions(suggestionsElement) {
 
 // --- Carousel Drag Scrolling ---
 function setupCarouselDrag() {
-    if (!carouselContainer || !carousel) {
-        console.warn('Carousel elements not found for drag setup');
-        return;
-    }
+    // Setup drag for all carousel containers
+    const carouselContainers = document.querySelectorAll('.carousel-container');
 
-    let isDown = false;
-    let startX;
-    let scrollLeft;
-    let isDragging = false;
+    carouselContainers.forEach(container => {
+        const carouselElement = container.querySelector('.carousel');
+        if (!carouselElement) return;
 
-    carouselContainer.addEventListener('mousedown', (e) => {
-        isDown = true;
-        isDragging = false;
-        carouselContainer.classList.add('active');
-        startX = e.pageX - carouselContainer.offsetLeft;
-        scrollLeft = carouselContainer.scrollLeft;
-    });
+        let isDown = false;
+        let startX;
+        let scrollLeft;
+        let isDragging = false;
 
-    carouselContainer.addEventListener('mouseleave', () => {
-        isDown = false;
-        carouselContainer.classList.remove('active');
-    });
+        container.addEventListener('mousedown', (e) => {
+            isDown = true;
+            isDragging = false;
+            container.classList.add('active');
+            startX = e.pageX - container.offsetLeft;
+            scrollLeft = container.scrollLeft;
+        });
 
-    carouselContainer.addEventListener('mouseup', () => {
-        isDown = false;
-        carouselContainer.classList.remove('active');
-        setTimeout(() => isDragging = false, 50);
-    });
+        container.addEventListener('mouseleave', () => {
+            isDown = false;
+            container.classList.remove('active');
+        });
 
-    carouselContainer.addEventListener('mousemove', (e) => {
-        if (!isDown) return;
-        e.preventDefault();
-        const x = e.pageX - carouselContainer.offsetLeft;
-        const walk = (x - startX) * 2;
-        carouselContainer.scrollLeft = scrollLeft - walk;
+        container.addEventListener('mouseup', () => {
+            isDown = false;
+            container.classList.remove('active');
+            setTimeout(() => isDragging = false, 50);
+        });
 
-        if (Math.abs(walk) > 5) {
-            isDragging = true;
-        }
-    });
-
-    carousel.addEventListener('click', (e) => {
-        const card = e.target.closest('.card');
-        if (!card) return;
-
-        if (isDragging) {
+        container.addEventListener('mousemove', (e) => {
+            if (!isDown) return;
             e.preventDefault();
-            e.stopPropagation();
-            return;
-        }
+            const x = e.pageX - container.offsetLeft;
+            const walk = (x - startX) * 2;
+            container.scrollLeft = scrollLeft - walk;
 
-        if (card.classList.contains('add-card-trigger')) {
-            openModal();
-            return;
-        }
-
-        if (e.target.closest('.action-btn')) {
-            return;
-        }
-
-        const id = card.dataset.id;
-        console.log('Card clicked, id:', id);
-        if (!id) {
-            console.warn('Card has no id');
-            return;
-        }
-
-        // Try to get from both sync and local storage
-        Promise.all([
-            Storage.get(STORAGE_KEY),
-            Storage.get(STORAGE_KEY, true)
-        ]).then(([linksSync, linksLocal]) => {
-            // Use local if it exists and has data, otherwise use sync
-            let links = null;
-            if (linksLocal && Array.isArray(linksLocal) && linksLocal.length > 0) {
-                links = linksLocal;
-            } else if (linksSync && Array.isArray(linksSync) && linksSync.length > 0) {
-                links = linksSync;
-            }
-
-            if (!links) {
-                console.error('No links found in storage');
-                return;
-            }
-
-            const link = links.find(l => l.id === id);
-            if (link && link.url) {
-                console.log('Opening link:', link.url);
-                window.location.href = link.url;
-            } else {
-                console.error('Link not found or URL missing:', id);
+            if (Math.abs(walk) > 5) {
+                isDragging = true;
             }
         });
+
+        // Only add click handler for the main carousel (with add-card-trigger)
+        if (carouselElement === carousel) {
+            carouselElement.addEventListener('click', (e) => {
+                const card = e.target.closest('.card');
+                if (!card) return;
+
+                if (isDragging) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return;
+                }
+
+                if (card.classList.contains('add-card-trigger')) {
+                    openModal();
+                    return;
+                }
+
+                if (e.target.closest('.action-btn')) {
+                    return;
+                }
+
+                const id = card.dataset.id;
+                console.log('Card clicked, id:', id);
+                if (!id) {
+                    console.warn('Card has no id');
+                    return;
+                }
+
+                // Try to get from both sync and local storage
+                Promise.all([
+                    Storage.get(STORAGE_KEY),
+                    Storage.get(STORAGE_KEY, true)
+                ]).then(([linksSync, linksLocal]) => {
+                    // Use local if it exists and has data, otherwise use sync
+                    let links = null;
+                    if (linksLocal && Array.isArray(linksLocal) && linksLocal.length > 0) {
+                        links = linksLocal;
+                    } else if (linksSync && Array.isArray(linksSync) && linksSync.length > 0) {
+                        links = linksSync;
+                    }
+
+                    if (!links) {
+                        console.error('No links found in storage');
+                        return;
+                    }
+
+                    const link = links.find(l => l.id === id);
+                    if (link && link.url) {
+                        console.log('Opening link:', link.url);
+                        window.location.href = link.url;
+                    } else {
+                        console.error('Link not found or URL missing:', id);
+                    }
+                });
+            });
+        }
     });
 }
 
